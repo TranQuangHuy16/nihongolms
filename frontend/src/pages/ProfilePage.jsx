@@ -4,27 +4,47 @@ import { useAuthStore } from '../store/authStore';
 import userApi from '../services/userApi';
 
 export const ProfilePage = () => {
-  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
   const [formData, setFormData] = useState({
-    fullName: '',
+    displayName: '',
     email: '',
+    phoneNumber: '',
+    avatarUrl: '',
   });
   const [passwordData, setPasswordData] = useState({
-    oldPassword: '',
+    currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const setUser = useAuthStore((state) => state.setUser);
+  const [isFetching, setIsFetching] = useState(true);
+  const [userData, setUserData] = useState(null);
 
+  // Fetch user data from /users/me on mount
   useEffect(() => {
-    if (user) {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    setIsFetching(true);
+    try {
+      const response = await userApi.getMe();
+      const data = response.data.data;
+      setUserData(data);
       setFormData({
-        fullName: user.fullName || '',
-        email: user.email || '',
+        displayName: data?.displayName || '',
+        email: data?.email || '',
+        phoneNumber: data?.phoneNumber || '',
+        avatarUrl: data?.avatarUrl || '',
       });
+      // Also update global auth store
+      setUser(data);
+    } catch (error) {
+      toast.error('Không thể tải thông tin hồ sơ');
+    } finally {
+      setIsFetching(false);
     }
-  }, [user]);
+  };
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -41,8 +61,16 @@ export const ProfilePage = () => {
     setIsLoading(true);
 
     try {
-      const response = await userApi.update(formData);
-      setUser(response.data.data);
+      // PUT /users with { displayName, email, phoneNumber, avatarUrl }
+      const response = await userApi.update({
+        displayName: formData.displayName,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        avatarUrl: formData.avatarUrl,
+      });
+      const updated = response.data.data;
+      setUser(updated);
+      setUserData(updated);
       toast.success('Cập nhật thông tin thành công!');
     } catch (error) {
       const message = error.response?.data?.message || 'Cập nhật thất bại';
@@ -56,7 +84,7 @@ export const ProfilePage = () => {
     e.preventDefault();
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('Mật khẩu không khớp!');
+      toast.error('Mật khẩu mới không khớp!');
       return;
     }
 
@@ -64,11 +92,12 @@ export const ProfilePage = () => {
 
     try {
       await userApi.changePassword({
-        oldPassword: passwordData.oldPassword,
+        currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
       });
       setPasswordData({
-        oldPassword: '',
+        currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
@@ -81,77 +110,217 @@ export const ProfilePage = () => {
     }
   };
 
-  return (
-    <div className="container py-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Thông Tin Hồ Sơ</h1>
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex items-center gap-3" style={{ color: 'var(--text-muted)' }}>
+          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          Đang tải hồ sơ...
+        </div>
+      </div>
+    );
+  }
 
-        {/* Update Profile */}
-        <div className="card mb-8">
-          <h2 className="text-xl font-bold mb-6">Cập Nhật Thông Tin</h2>
-          <form onSubmit={handleUpdateProfile}>
+  return (
+    <div className="p-6 lg:p-8 max-w-3xl mx-auto">
+      {/* Header */}
+      <div className="mb-8 animate-fade-in-up">
+        <h1 className="text-2xl lg:text-3xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          Hồ Sơ Cá Nhân
+        </h1>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>
+          Quản lý thông tin cá nhân và bảo mật tài khoản
+        </p>
+      </div>
+
+      {/* Avatar Preview */}
+      <div className="card mb-6 animate-fade-in-up stagger-1">
+        <div className="flex items-center gap-5">
+          <div className="relative">
+            {formData.avatarUrl ? (
+              <img
+                src={formData.avatarUrl}
+                alt="Avatar"
+                className="w-20 h-20 rounded-2xl object-cover"
+                style={{ border: '2px solid var(--border-glass)' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+            ) : null}
+            <div
+              className={`w-20 h-20 rounded-2xl items-center justify-center text-white font-bold text-2xl ${formData.avatarUrl ? 'hidden' : 'flex'}`}
+              style={{ background: 'var(--gradient-accent)' }}
+            >
+              {(userData?.displayName || userData?.username || '?')[0].toUpperCase()}
+            </div>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+              {userData?.displayName || userData?.username || '—'}
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              @{userData?.username || '—'}
+            </p>
+            <span
+              className="inline-block text-xs px-2.5 py-0.5 rounded-lg mt-1.5 font-medium"
+              style={{
+                background: 'rgba(52, 211, 153, 0.1)',
+                color: 'var(--accent-emerald)',
+                border: '1px solid rgba(52, 211, 153, 0.2)',
+              }}
+            >
+              {userData?.role || 'USER'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Update Profile Form */}
+      <div className="card mb-6 animate-fade-in-up stagger-2">
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(99, 102, 241, 0.15)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-indigo)" strokeWidth="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Cập Nhật Thông Tin
+          </h2>
+        </div>
+
+        <form onSubmit={handleUpdateProfile}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
             <div className="form-group">
-              <label htmlFor="fullName" className="form-label">
-                Họ và Tên
+              <label htmlFor="profile-displayName" className="form-label">
+                Tên Hiển Thị
               </label>
               <input
-                id="fullName"
+                id="profile-displayName"
                 type="text"
-                name="fullName"
+                name="displayName"
                 className="form-input"
-                value={formData.fullName}
+                placeholder="Nhập tên hiển thị..."
+                value={formData.displayName}
                 onChange={handleProfileChange}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="email" className="form-label">
+              <label htmlFor="profile-email" className="form-label">
                 Email
               </label>
               <input
-                id="email"
+                id="profile-email"
                 type="email"
                 name="email"
                 className="form-input"
+                placeholder="Nhập email..."
                 value={formData.email}
                 onChange={handleProfileChange}
               />
             </div>
 
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Đang xử lý...' : 'Cập Nhật'}
-            </button>
-          </form>
-        </div>
-
-        {/* Change Password */}
-        <div className="card">
-          <h2 className="text-xl font-bold mb-6">Đổi Mật Khẩu</h2>
-          <form onSubmit={handleChangePassword}>
             <div className="form-group">
-              <label htmlFor="oldPassword" className="form-label">
-                Mật Khẩu Cũ
+              <label htmlFor="profile-phoneNumber" className="form-label">
+                Số Điện Thoại
               </label>
               <input
-                id="oldPassword"
-                type="password"
-                name="oldPassword"
+                id="profile-phoneNumber"
+                type="tel"
+                name="phoneNumber"
                 className="form-input"
-                value={passwordData.oldPassword}
-                onChange={handlePasswordChange}
-                required
+                placeholder="Nhập số điện thoại..."
+                value={formData.phoneNumber}
+                onChange={handleProfileChange}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="newPassword" className="form-label">
+              <label htmlFor="profile-avatarUrl" className="form-label">
+                Avatar URL
+              </label>
+              <input
+                id="profile-avatarUrl"
+                type="url"
+                name="avatarUrl"
+                className="form-input"
+                placeholder="https://example.com/avatar.jpg"
+                value={formData.avatarUrl}
+                onChange={handleProfileChange}
+              />
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary mt-1" disabled={isLoading}>
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Đang xử lý...
+              </span>
+            ) : (
+              'Lưu Thay Đổi'
+            )}
+          </button>
+        </form>
+      </div>
+
+      {/* Change Password */}
+      <div className="card animate-fade-in-up stagger-3">
+        <div className="flex items-center gap-3 mb-6">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(251, 191, 36, 0.15)' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-amber)" strokeWidth="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0110 0v4" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+            Đổi Mật Khẩu
+          </h2>
+        </div>
+
+        <form onSubmit={handleChangePassword}>
+          <div className="form-group">
+            <label htmlFor="profile-currentPassword" className="form-label">
+              Mật Khẩu Hiện Tại
+            </label>
+            <input
+              id="profile-currentPassword"
+              type="password"
+              name="currentPassword"
+              className="form-input"
+              placeholder="Nhập mật khẩu hiện tại..."
+              value={passwordData.currentPassword}
+              onChange={handlePasswordChange}
+              required
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5">
+            <div className="form-group">
+              <label htmlFor="profile-newPassword" className="form-label">
                 Mật Khẩu Mới
               </label>
               <input
-                id="newPassword"
+                id="profile-newPassword"
                 type="password"
                 name="newPassword"
                 className="form-input"
+                placeholder="Tối thiểu 6 ký tự..."
                 value={passwordData.newPassword}
                 onChange={handlePasswordChange}
                 required
@@ -159,25 +328,36 @@ export const ProfilePage = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword" className="form-label">
+              <label htmlFor="profile-confirmPassword" className="form-label">
                 Xác Nhận Mật Khẩu Mới
               </label>
               <input
-                id="confirmPassword"
+                id="profile-confirmPassword"
                 type="password"
                 name="confirmPassword"
                 className="form-input"
+                placeholder="Nhập lại mật khẩu mới..."
                 value={passwordData.confirmPassword}
                 onChange={handlePasswordChange}
                 required
               />
             </div>
+          </div>
 
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? 'Đang xử lý...' : 'Đổi Mật Khẩu'}
-            </button>
-          </form>
-        </div>
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Đang xử lý...
+              </span>
+            ) : (
+              'Đổi Mật Khẩu'
+            )}
+          </button>
+        </form>
       </div>
     </div>
   );

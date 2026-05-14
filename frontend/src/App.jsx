@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Header from './components/Header';
+import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import LoginPage from './pages/LoginPage';
@@ -11,14 +11,18 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import TagsPage from './pages/TagsPage';
-import UsersPage from './pages/UsersPage';
+import { useAuthStore } from './store/authStore';
 
 function App() {
+  const token = useAuthStore((state) => state.token);
+
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1">
+      <div className="min-h-screen flex">
+        {/* Only show Sidebar when authenticated */}
+        {token && <Sidebar />}
+
+        <main className={`flex-1 min-h-screen ${token ? '' : ''}`}>
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
@@ -57,14 +61,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <UsersPage />
-                </ProtectedRoute>
-              }
-            />
 
             {/* Fallback */}
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -81,6 +77,7 @@ function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        theme="dark"
       />
     </BrowserRouter>
   );

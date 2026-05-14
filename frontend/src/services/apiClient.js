@@ -14,7 +14,22 @@ export const apiClient = axios.create({
 // Add request interceptor to include JWT token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    let token = useAuthStore.getState().token;
+
+    // If zustand persist hasn't rehydrated yet, fallback to localStorage
+    if (!token) {
+      try {
+        const raw = localStorage.getItem('auth-store');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          // persisted shape may be { state: { token, user } }
+          token = parsed?.state?.token ?? parsed?.token ?? null;
+        }
+      } catch (e) {
+        token = null;
+      }
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
