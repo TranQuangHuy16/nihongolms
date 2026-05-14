@@ -59,12 +59,6 @@ public class UserService {
         return mapToResponse(userRepository.save(user));
     }
 
-    private User getUserInfo() {
-        User user = SecurityUtil.getCurrentUser().getUser();
-
-        return user;
-    }
-
     public void changePassword(ChangePasswordRequest request) {
         User user = userRepository.findById(this.getUserInfo().getId())
                 .orElseThrow(
@@ -81,6 +75,13 @@ public class UserService {
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
+
+    private User getUserInfo() {
+        User user = SecurityUtil.getCurrentUser().getUser();
+
+        return user;
+    }
+
 
     private UserResponse mapToResponse(User user) {
         return UserResponse.builder()
