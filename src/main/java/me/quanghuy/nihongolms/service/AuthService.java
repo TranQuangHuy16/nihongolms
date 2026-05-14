@@ -1,6 +1,7 @@
 package me.quanghuy.nihongolms.service;
 
 import lombok.RequiredArgsConstructor;
+import me.quanghuy.nihongolms.core.util.SecurityUtil;
 import me.quanghuy.nihongolms.domain.user.User;
 import me.quanghuy.nihongolms.domain.user.UserRole;
 import me.quanghuy.nihongolms.dto.auth.AuthResponse;
@@ -61,9 +62,8 @@ public class AuthService {
         // Tự động login sau khi đăng ký
         CustomUserDetails userDetails = new CustomUserDetails(user);
         String accessToken = jwtTokenProvider.generateAccessToken(userDetails);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
 
-        return buildAuthResponse(user, accessToken, refreshToken);
+        return buildAuthResponse(user, accessToken);
     }
 
     /**
@@ -76,12 +76,11 @@ public class AuthService {
 
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         String accessToken = jwtTokenProvider.generateAccessToken(authentication);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(userDetails);
 
-        return buildAuthResponse(userDetails.getUser(), accessToken, refreshToken);
+        return buildAuthResponse(userDetails.getUser(), accessToken);
     }
 
-    private AuthResponse buildAuthResponse(User user, String accessToken, String refreshToken) {
+    private AuthResponse buildAuthResponse(User user, String accessToken ) {
         return AuthResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
@@ -89,7 +88,6 @@ public class AuthService {
                 .displayName(user.getDisplayName())
                 .role(user.getRole().name())
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(accessTokenExpirationMs / 1000) // convert to seconds
                 .build();
