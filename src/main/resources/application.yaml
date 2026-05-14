@@ -1,0 +1,47 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: nihongolms
+
+  # ── PostgreSQL ──
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nihongolms
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
+  # ── JPA / Hibernate ──
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+# ── Server ──
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# ── JWT ──
+app:
+  jwt:
+    secret: ${JWT_SECRET:NihongoLMS_SuperSecretKey_2026_ChangeThisInProduction_AtLeast256Bits!!}
+    expiration-ms: 86400000        # 24 hours
+    refresh-expiration-ms: 604800000  # 7 days
+
+# ── SpringDoc / Swagger ──
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+  default-produces-media-type: application/json
