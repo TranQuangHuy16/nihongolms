@@ -20,6 +20,10 @@ public class RegisterRequest {
     @Email(message = "Email format is invalid")
     private String email;
 
+    @NotBlank(message = "PhoneNumber is required")
+    @Size(min = 11, max = 11, message = "Username must be 11 characters")
+    private String phoneNumber;
+
     @NotBlank(message = "Password is required")
     @Size(min = 6, max = 100, message = "Password must be between 6 and 100 characters")
     private String password;

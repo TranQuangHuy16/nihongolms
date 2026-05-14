@@ -28,6 +28,9 @@ public class User extends BaseEntity {
     @Column(length = 500)
     private String avatarUrl;
 
+    @Column(length = 500)
+    private String phoneNumber;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     @Builder.Default

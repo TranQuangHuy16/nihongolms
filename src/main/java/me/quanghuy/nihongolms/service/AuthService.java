@@ -1,7 +1,6 @@
 package me.quanghuy.nihongolms.service;
 
 import lombok.RequiredArgsConstructor;
-import me.quanghuy.nihongolms.core.util.SecurityUtil;
 import me.quanghuy.nihongolms.domain.user.User;
 import me.quanghuy.nihongolms.domain.user.UserRole;
 import me.quanghuy.nihongolms.dto.auth.AuthResponse;
@@ -37,7 +36,8 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         // Kiểm tra username đã tồn tại chưa
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Username '" + request.getUsername() + "' already exists");
+            throw new IllegalArgumentException(
+                    "Username '" + request.getUsername() + "' already exists");
         }
 
         // Kiểm tra email đã tồn tại chưa
@@ -80,11 +80,12 @@ public class AuthService {
         return buildAuthResponse(userDetails.getUser(), accessToken);
     }
 
-    private AuthResponse buildAuthResponse(User user, String accessToken ) {
+    private AuthResponse buildAuthResponse(User user, String accessToken) {
         return AuthResponse.builder()
                 .userId(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .phoneNumber(user.getPhoneNumber())
                 .displayName(user.getDisplayName())
                 .role(user.getRole().name())
                 .accessToken(accessToken)
