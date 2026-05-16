@@ -14,6 +14,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.UUID;
@@ -26,11 +27,12 @@ public class TagService {
     /**
      * Lấy danh sách tag với phân trang, search theo name, sắp xếp theo ngày.
      *
-     * @param search   Từ khóa tìm kiếm theo name (nullable)
-     * @param page     Trang hiện tại (0-indexed)
-     * @param size     Số lượng mỗi trang
-     * @param sortDir  Hướng sắp xếp: "asc" (cũ nhất) hoặc "desc" (mới nhất, default)
+     * @param search  Từ khóa tìm kiếm theo name (nullable)
+     * @param page    Trang hiện tại (0-indexed)
+     * @param size    Số lượng mỗi trang
+     * @param sortDir Hướng sắp xếp: "asc" (cũ nhất) hoặc "desc" (mới nhất, default)
      */
+    @Transactional(readOnly = true)
     public PageResponse<TagResponse> getTags(String search, int page, int size, String sortDir) {
         Sort sort = "asc".equalsIgnoreCase(sortDir)
                 ? Sort.by("createdAt").ascending()
@@ -41,7 +43,8 @@ public class TagService {
 
         Page<Tag> tagPage;
         if (StringUtils.hasText(search)) {
-            tagPage = tagRepository.findByUser_IdAndNameContainingIgnoreCase(userId, search.trim(), pageable);
+            tagPage = tagRepository.findByUser_IdAndNameContainingIgnoreCase(userId, search.trim(),
+                    pageable);
         } else {
             tagPage = tagRepository.findByUser_Id(userId, pageable);
         }
@@ -54,6 +57,7 @@ public class TagService {
                 .build();
     }
 
+    @Transactional
     public TagResponse create(TagRequest request) {
         Tag newTag = Tag.builder()
                 .name(request.getName())
@@ -64,6 +68,7 @@ public class TagService {
         return mapToResponse(tagRepository.save(newTag));
     }
 
+    @Transactional
     public TagResponse update(UUID id, TagRequest request) {
         Tag tag = tagRepository.findByIdAndUser_Id(id, this.getUserInfo().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thẻ tag"));
@@ -79,6 +84,7 @@ public class TagService {
         return mapToResponse(tagRepository.save(tag));
     }
 
+    @Transactional
     public void delete(UUID id) {
         Tag tag = tagRepository.findByIdAndUser_Id(id, this.getUserInfo().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thẻ tag"));
