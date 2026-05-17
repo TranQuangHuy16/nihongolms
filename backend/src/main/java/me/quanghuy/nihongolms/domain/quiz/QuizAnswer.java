@@ -23,8 +23,12 @@ public class QuizAnswer extends BaseEntity {
     @JoinColumn(name = "question_id", nullable = false)
     private QuizQuestion question;
 
-    @Column(columnDefinition = "TEXT")
-    private String userAnswer;
+    /**
+     * Đáp án mà user đã chọn (A, B, C hoặc D).
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "selected_option_id")
+    private QuizOption selectedOption;
 
     private boolean correct;
 

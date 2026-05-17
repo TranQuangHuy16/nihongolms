@@ -3,8 +3,9 @@ package me.quanghuy.nihongolms.domain.quiz;
 import jakarta.persistence.*;
 import lombok.*;
 import me.quanghuy.nihongolms.domain.BaseEntity;
-import me.quanghuy.nihongolms.domain.grammar.GrammarPoint;
-import me.quanghuy.nihongolms.domain.vocabulary.Vocabulary;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "quiz_questions")
@@ -19,30 +20,30 @@ public class QuizQuestion extends BaseEntity {
     @JoinColumn(name = "quiz_id", nullable = false)
     private Quiz quiz;
 
+    /**
+     * Bài đọc hiểu chứa câu hỏi này (nullable).
+     * Chỉ có giá trị khi questionType = READING.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vocabulary_id")
-    private Vocabulary vocabulary;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "grammar_point_id")
-    private GrammarPoint grammarPoint;
+    @JoinColumn(name = "passage_id")
+    private ReadingPassage passage;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String questionText;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private QuizType questionType;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String correctAnswer;
-
     /**
-     * JSON array chứa các lựa chọn cho trắc nghiệm.
-     * VD: ["走る", "歩く", "飛ぶ", "泳ぐ"]
+     * Giải thích tại sao đáp án đúng là đúng (hiển thị sau khi trả lời).
      */
     @Column(columnDefinition = "TEXT")
-    private String options;
+    private String explanation;
 
     private int orderIndex;
+
+    /**
+     * Danh sách 4 đáp án (A, B, C, D).
+     */
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("label ASC")
+    @Builder.Default
+    private List<QuizOption> options = new ArrayList<>();
 }
