@@ -51,7 +51,7 @@ public class TagService {
 
         return PageResponse.<TagResponse>builder()
                 .items(tagPage.getContent().stream().map(this::mapToResponse).toList())
-                .page(tagPage.getNumber())
+                .page(tagPage.getNumber() + 1)
                 .size(tagPage.getSize())
                 .total(tagPage.getTotalElements())
                 .build();
